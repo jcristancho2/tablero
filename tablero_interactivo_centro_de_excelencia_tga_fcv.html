@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Centro de Excelencia TGA - FCV Dashboard Investigación</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for Interactive Visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        fcv: {
+                            blue: '#002777',         // Pantone 280 C (Azul Corporativo FCV)
+                            lightBlue: '#004497',    // Pantone P 109-8 C (Azul Claro FCV)
+                            darkBlue: '#001A52',     // Dark Indigo Header Deep
+                            coolGray2: '#D8D9D7',    // Pantone Cool Gray 2 CP (Bordes/Contenedores)
+                            coolGray6: '#A3A6A9',    // Pantone Cool Gray 6 CP (Texto Secundario/Ejes)
+                            bgCanvas: '#F8FAFC',     // Fondo limpio
+                            cardBg: '#FFFFFF',
+                            alertRed: '#D32F2F',     // Carmesí Clínico de Alerta
+                            successGreen: '#2E7D32', // Verde Éxito Clínico
+                            warningAmber: '#F59E0B'  // Ámbar
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8FAFC;
+            color: #1E293B;
+        }
+        .bento-card {
+            background-color: #FFFFFF;
+            border-radius: 12px;
+            border: 1px solid #D8D9D7;
+            box-shadow: 0 2px 6px rgba(0, 39, 119, 0.04);
+            transition: all 0.2s ease-in-out;
+        }
+        .bento-card:hover {
+            box-shadow: 0 6px 18px rgba(0, 39, 119, 0.09);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #A3A6A9;
+            border-radius: 4px;
+        }
+        .tab-btn {
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            color: #002777;
+            border-bottom: 3px solid #002777;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-blue-100">
+
+    <!-- HEADER INSTITUCIONAL FCV (Pantone 280 C) -->
+    <header class="bg-[#002777] text-white border-b border-[#001A52] sticky top-0 z-50 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Brand / Logo FCV -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-white text-[#002777] rounded-lg flex items-center justify-center font-extrabold text-lg shadow-inner">
+                        FCV
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="text-base font-bold text-white leading-tight tracking-wide">Centro de Excelencia de Transposición de Grandes Vasos (TGA)</h1>
+                            <span class="bg-blue-800 text-blue-100 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-blue-600">Cohorte Investigación</span>
+                        </div>
+                        <p class="text-[11px] text-blue-200">Fundación Cardiovascular de Colombia • Dirección de Investigación Clínica</p>
+                    </div>
+                </div>
+
+                <!-- Action Controls -->
+                <div class="flex items-center space-x-2 sm:space-x-3">
+                    <button onclick="exportData('xlsx')" class="bg-[#004497] hover:bg-blue-800 text-white text-xs px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 font-medium border border-blue-400/30">
+                        <i data-lucide="download" class="w-3.5 h-3.5"></i> <span class="hidden md:inline">Exportar Excel</span>
+                    </button>
+                    <button onclick="openFilterModal()" class="bg-[#004497] hover:bg-blue-800 text-white text-xs px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 font-medium border border-blue-400/30">
+                        <i data-lucide="filter" class="w-3.5 h-3.5"></i> <span class="hidden md:inline">Filtros Cohorte</span>
+                    </button>
+                    <button onclick="switchTab('cohorte'); document.getElementById('filter-alert').value='ALERT'; filterCohortTable();" class="bg-[#D32F2F] hover:bg-red-800 text-white text-xs px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 font-medium shadow-sm" title="Ver pacientes con alertas clínicas">
+                        <i data-lucide="bell" class="w-3.5 h-3.5"></i> <span class="hidden md:inline">Alertas (12)</span>
+                    </button>
+                    <button onclick="showTransitionInfo()" class="bg-white/10 hover:bg-white/20 text-white text-xs px-2.5 py-1.5 rounded-lg transition flex items-center gap-1" title="Protocolo Transición Adulto ACHD">
+                        <i data-lucide="user-check" class="w-4 h-4"></i>
+                        <span class="hidden lg:inline text-[11px]">Programa ACHD</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- NAVEGACIÓN POR MÓDULOS DEL CENTRO DE EXCELENCIA -->
+    <div class="bg-white border-b border-[#D8D9D7] sticky top-16 z-40 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <nav class="flex space-x-6 overflow-x-auto custom-scrollbar text-xs font-medium text-[#A3A6A9]">
+                <button onclick="switchTab('resumen')" id="tab-resumen" class="tab-btn active py-3 px-1 whitespace-nowrap flex items-center gap-2">
+                    <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Módulo 1: Resumen & KPIs
+                </button>
+                <button onclick="switchTab('fetal')" id="tab-fetal" class="tab-btn py-3 px-1 whitespace-nowrap flex items-center gap-2">
+                    <i data-lucide="baby" class="w-4 h-4"></i> Módulo 2: Fetal & Perinatal
+                </button>
+                <button onclick="switchTab('anatomia')" id="tab-anatomia" class="tab-btn py-3 px-1 whitespace-nowrap flex items-center gap-2">
+                    <i data-lucide="heart-pulse" class="w-4 h-4"></i> Módulo 3: Anatomía & Cirugía
+                </button>
+                <button onclick="switchTab('proms')" id="tab-proms" class="tab-btn py-3 px-1 whitespace-nowrap flex items-center gap-2">
+                    <i data-lucide="activity" class="w-4 h-4"></i> Módulo 4: PROMs & Escalas
+                </button>
+                <button onclick="switchTab('cohorte')" id="tab-cohorte" class="tab-btn py-3 px-1 whitespace-nowrap flex items-center gap-2">
+                    <i data-lucide="users" class="w-4 h-4"></i> Módulo 5: Cohorte & Trayectoria
+                </button>
+            </nav>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- ================= MÓDULO 1: RESUMEN EJECUTIVO Y KPIS DE CALIDAD ================= -->
+        <div id="sec-resumen" class="tab-content block space-y-6">
+            
+            <!-- TOP KPI CARDS -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                
+                <!-- KPI 1: PACIENTES ACTIVOS -->
+                <div class="bento-card p-5 bg-gradient-to-br from-[#002777] to-[#004497] text-white flex flex-col justify-between shadow-md">
+                    <div>
+                        <div class="flex items-center justify-between text-blue-200 text-xs font-semibold uppercase tracking-wider">
+                            <span>Pacientes Activos</span>
+                            <i data-lucide="users" class="w-4 h-4"></i>
+                        </div>
+                        <h2 class="text-4xl font-extrabold mt-3">142</h2>
+                        <p class="text-[11px] text-blue-100 mt-1">en seguimiento longitudinal TGA</p>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-white/20 text-[11px] text-blue-200 flex items-center justify-between">
+                        <span>Retención Cohorte:</span>
+                        <span class="font-bold text-emerald-300">96.8%</span>
+                    </div>
+                </div>
+
+                <!-- KPI 2: CLASIFICACIÓN ANATÓMICA -->
+                <div class="bento-card p-4 flex flex-col justify-between">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-xs font-bold text-slate-800">Distribución TGA</h3>
+                        <span class="text-[10px] text-slate-400">Anatómica</span>
+                    </div>
+                    <div class="flex items-center gap-2 my-1">
+                        <div class="w-20 h-20 relative flex-shrink-0">
+                            <canvas id="chartAnatomiaDonut"></canvas>
+                        </div>
+                        <div class="text-[11px] space-y-1 flex-1">
+                            <div>
+                                <span class="font-semibold text-[#002777] block">TGA Simple</span>
+                                <span class="text-slate-500 font-bold">62% <span class="text-[10px] font-normal">(88)</span></span>
+                            </div>
+                            <div>
+                                <span class="font-semibold text-sky-600 block">TGA Compleja</span>
+                                <span class="text-slate-500 font-bold">38% <span class="text-[10px] font-normal">(54)</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPI 3: ZONA DE RESIDENCIA -->
+                <div class="bento-card p-4 flex flex-col justify-between">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-xs font-bold text-slate-800">Zona Residencia</h3>
+                        <span class="text-[10px] text-slate-400">Geografía</span>
+                    </div>
+                    <div class="flex items-center gap-2 my-1">
+                        <div class="w-20 h-20 relative flex-shrink-0">
+                            <canvas id="chartZonaDonut"></canvas>
+                        </div>
+                        <div class="text-[11px] space-y-1 flex-1">
+                            <div>
+                                <span class="font-semibold text-[#002777] block">Urbana</span>
+                                <span class="text-slate-500 font-bold">81% <span class="text-[10px] font-normal">(115)</span></span>
+                            </div>
+                            <div>
+                                <span class="font-semibold text-amber-600 block">Rural</span>
+                                <span class="text-slate-500 font-bold">19% <span class="text-[10px] font-normal">(27)</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPI 4: RÉGIMEN AFILIACIÓN -->
+                <div class="bento-card p-4 flex flex-col justify-between lg:col-span-2">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-xs font-bold text-slate-800">Régimen de Afiliación</h3>
+                        <span class="text-[10px] text-slate-400">SGSSS Colombia</span>
+                    </div>
+                    <div class="flex items-center gap-4 my-1">
+                        <div class="w-20 h-20 relative flex-shrink-0">
+                            <canvas id="chartRegimenDonut"></canvas>
+                        </div>
+                        <div class="text-[11px] space-y-1.5 flex-1 grid grid-cols-2 gap-x-2">
+                            <div class="flex justify-between items-center">
+                                <span class="text-slate-600 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#002777]"></span> Contributivo</span>
+                                <span class="font-bold text-slate-800">54%</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-slate-600 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#004497]"></span> Subsidiado</span>
+                                <span class="font-bold text-slate-800">36%</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-slate-600 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-600"></span> Especial</span>
+                                <span class="font-bold text-slate-800">6%</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-slate-600 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-500"></span> Particular</span>
+                                <span class="font-bold text-slate-800">4%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- GLOBAL INDICATORS & QUALITY METRICS -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- SURVIVAL RATE CARD -->
+                <div class="bento-card p-5 border-l-4 border-l-[#2E7D32]">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Sobrevida Quirúrgica Post-ASO</h3>
+                        <i data-lucide="shield-check" class="w-5 h-5 text-[#2E7D32]"></i>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <span class="text-3xl font-black text-slate-900">95.4%</span>
+                        <span class="text-xs text-emerald-700 font-semibold">+1.2% vs. Estándar Int.</span>
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-2">Supervivencia acumulada a 30 días tras Switch Arterial (Operación de Jatene).</p>
+                </div>
+
+                <!-- PRENATAL DETECTION -->
+                <div class="bento-card p-5 border-l-4 border-l-[#004497]">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Captura Diagnosticada Fetal</h3>
+                        <i data-lucide="heart" class="w-5 h-5 text-[#004497]"></i>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <span class="text-3xl font-black text-slate-900">41.2%</span>
+                        <span class="text-xs text-blue-700 font-semibold">Diagnosticados in utero</span>
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-2">Detección prenatal mediante ecocardiografía fetal derivó en traslado in utero FCV.</p>
+                </div>
+
+                <!-- CLINICAL ALERT SUMMARY -->
+                <div class="bento-card p-5 border-l-4 border-l-[#D32F2F]">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Alertas Activas en Ruta</h3>
+                        <i data-lucide="alert-triangle" class="w-5 h-5 text-[#D32F2F]"></i>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <span class="text-3xl font-black text-[#D32F2F]">12</span>
+                        <span class="text-xs text-red-600 font-semibold">requieren acción</span>
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-2">8 por controles ecocardiográficos vencidos y 4 con Morisky &lt; 2 (Baja adherencia).</p>
+                </div>
+            </div>
+
+            <!-- AGE GROUP DISTRIBUTION -->
+            <div class="bento-card p-5">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Distribución por Etapas del Desarrollo (Ciclo Vital TGA)</h3>
+                        <p class="text-[11px] text-slate-500">Población activa clasificada desde la etapa neonatal hasta la transición a cardiopatías congénitas del adulto.</p>
+                    </div>
+                    <span class="bg-blue-50 text-[#002777] border border-blue-200 text-[10px] font-bold px-2 py-1 rounded">Total Cohorte: 142</span>
+                </div>
+                <div class="h-56 relative w-full">
+                    <canvas id="chartEtarioModule1"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= MÓDULO 2: CARACTERIZACIÓN FETAL, PERINATAL E INGRESO NEONATAL ================= -->
+        <div id="sec-fetal" class="tab-content hidden space-y-6">
+            <div class="bg-blue-50 border border-blue-200 p-4 rounded-xl text-xs flex items-center gap-3 text-[#002777]">
+                <i data-lucide="info" class="w-5 h-5 flex-shrink-0"></i>
+                <span><strong>Módulo Perinatal:</strong> Registro continuo desde la confirmación con la 1.ª Ecocardiografía Postnatal. Modela la concordancia entre sospecha prenatal y hallazgos quirúrgicos definitivos.</span>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- CORRELACIÓN DIAGNÓSTICA -->
+                <div class="bento-card p-5 flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-xs font-bold text-slate-800 mb-1">Correlación Diagnóstica Fetal vs. Postnatal Definitiva</h3>
+                        <p class="text-[11px] text-slate-500 mb-4">Concordancia diagnóstica del ecocardiograma fetal vs eco postnatal en FCV</p>
+                        <div class="h-64 relative">
+                            <canvas id="chartCorrelacionFetal"></canvas>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-[#D8D9D7] text-[11px] text-slate-600 flex justify-between">
+                        <span>Concordancia Anatómica Estricta: <strong class="text-[#002777]">92.3%</strong></span>
+                        <span>Falsos Negativos Prenatales: <strong class="text-amber-600">7.7%</strong></span>
+                    </div>
+                </div>
+
+                <!-- PROCEDIMIENTOS & MANEJO NEONATAL INMEDIATO -->
+                <div class="bento-card p-5 space-y-4">
+                    <h3 class="text-xs font-bold text-slate-800">Factores Perinatales e Intervenciones Neonatales</h3>
+                    
+                    <div class="grid grid-cols-2 gap-3 text-xs">
+                        <div class="p-3 bg-slate-50 rounded-lg border border-[#D8D9D7]">
+                            <span class="text-slate-500 block text-[10px]">EDAD GESTACIONAL MEDIA</span>
+                            <span class="text-base font-extrabold text-slate-800">38.4 semanas</span>
+                            <span class="text-[10px] text-slate-400 block mt-0.5">Rango: 35.0 - 41.2 sem</span>
+                        </div>
+                        <div class="p-3 bg-slate-50 rounded-lg border border-[#D8D9D7]">
+                            <span class="text-slate-500 block text-[10px]">PESO PROMEDIO AL NACER</span>
+                            <span class="text-base font-extrabold text-slate-800">3,150 g</span>
+                            <span class="text-[10px] text-slate-400 block mt-0.5">Bajo peso (&lt;2500g): 11%</span>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3 pt-2">
+                        <h4 class="text-xs font-semibold text-slate-700">Intervenciones Neonatales Críticas (% de la cohorte)</h4>
+                        
+                        <div>
+                            <div class="flex justify-between text-xs mb-1 font-medium">
+                                <span class="text-slate-700">Septostomía Atrial con Balón (Procedimiento de Rashkind)</span>
+                                <span class="font-bold text-[#002777]">48.5% (69)</span>
+                            </div>
+                            <div class="w-full bg-slate-100 rounded-full h-2">
+                                <div class="bg-[#002777] h-2 rounded-full" style="width: 48.5%"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs mb-1 font-medium">
+                                <span class="text-slate-700">Ingreso Urgente a UCIN Pediátrica / Neonatal</span>
+                                <span class="font-bold text-[#004497]">89.2% (127)</span>
+                            </div>
+                            <div class="w-full bg-slate-100 rounded-full h-2">
+                                <div class="bg-[#004497] h-2 rounded-full" style="width: 89.2%"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs mb-1 font-medium">
+                                <span class="text-slate-700">Requerimiento de RCP / Inotrópicos en Sala de Partos</span>
+                                <span class="font-bold text-amber-600">14.0% (20)</span>
+                            </div>
+                            <div class="w-full bg-slate-100 rounded-full h-2">
+                                <div class="bg-amber-500 h-2 rounded-full" style="width: 14%"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs mb-1 font-medium">
+                                <span class="text-slate-700">Infusión de Prostaglandina E1 (PGE1) Pre-operatoria</span>
+                                <span class="font-bold text-emerald-700">82.4% (117)</span>
+                            </div>
+                            <div class="w-full bg-slate-100 rounded-full h-2">
+                                <div class="bg-[#2E7D32] h-2 rounded-full" style="width: 82.4%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FACTORES MATERNOS -->
+            <div class="bento-card p-5">
+                <h3 class="text-xs font-bold text-slate-800 mb-3">Factores Maternos y Antecedentes Gestacionales</h3>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+                    <div class="p-3 bg-slate-50 rounded-lg border border-[#D8D9D7]">
+                        <span class="text-slate-500 block text-[10px]">DIABETES MELLITUS GESTACIONAL</span>
+                        <span class="text-lg font-bold text-slate-800">12.6%</span>
+                        <span class="text-[10px] text-slate-400 block">18 madres en cohorte</span>
+                    </div>
+                    <div class="p-3 bg-slate-50 rounded-lg border border-[#D8D9D7]">
+                        <span class="text-slate-500 block text-[10px]">HIPERTENSIÓN INDUCIDA / PREECLAMPSIA</span>
+                        <span class="text-lg font-bold text-slate-800">15.4%</span>
+                        <span class="text-[10px] text-slate-400 block">22 madres en cohorte</span>
+                    </div>
+                    <div class="p-3 bg-slate-50 rounded-lg border border-[#D8D9D7]">
+                        <span class="text-slate-500 block text-[10px]">ENFERMEDAD AUTOINMUNE MATERNA</span>
+                        <span class="text-lg font-bold text-slate-800">3.5%</span>
+                        <span class="text-[10px] text-slate-400 block">LUPUS / SAF</span>
+                    </div>
+                    <div class="p-3 bg-slate-50 rounded-lg border border-[#D8D9D7]">
+                        <span class="text-slate-500 block text-[10px]">EXPOSICIÓN A TÓXICOS / TABACO</span>
+                        <span class="text-lg font-bold text-slate-800">5.6%</span>
+                        <span class="text-[10px] text-slate-400 block">Reporte en anamnesis</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= MÓDULO 3: ESTRATIFICACIÓN ANATÓMICA Y QUIRÚRGICA ================= -->
+        <div id="sec-anatomia" class="tab-content hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                <!-- TGA COMPLEJA: DESGROSE DE LESIONES -->
+                <div class="bento-card p-5 space-y-4">
+                    <div>
+                        <h3 class="text-xs font-bold text-slate-800">Desglose de TGA Compleja (54 Pacientes)</h3>
+                        <p class="text-[11px] text-slate-500">Frecuencia de defectos asociados que estratifican el riesgo quirúrgico</p>
+                    </div>
+
+                    <div class="space-y-3 text-xs" id="list-tga-compleja">
+                        <!-- Dynamic content filled by JS -->
+                    </div>
+                </div>
+
+                <!-- CLASIFICACIÓN CORONARIA DE YACOUB/LAMBERTI -->
+                <div class="bento-card p-5 space-y-4">
+                    <div>
+                        <h3 class="text-xs font-bold text-slate-800">Anatomía Coronaria (Clasificación de Yacoub)</h3>
+                        <p class="text-[11px] text-slate-500">Patrón de origen y distribución coronaria crítico para reimplante en ASO</p>
+                    </div>
+
+                    <div class="h-52 relative">
+                        <canvas id="chartCoronarias"></canvas>
+                    </div>
+
+                    <div class="text-[11px] text-slate-600 bg-slate-50 p-2.5 rounded-lg border border-[#D8D9D7]">
+                        <strong>Nota Técnica:</strong> El Tipo 1 (1AD,2CX) representa la anatomía habitual. Tipos 2 y 5 requirieron técnicas complejas de transferencia de botón coronario.
+                    </div>
+                </div>
+            </div>
+
+            <!-- TIPO DE CIRUGÍA & TIEMPOS QUIRÚRGICOS -->
+            <div class="bento-card p-5 space-y-4">
+                <h3 class="text-xs font-bold text-slate-800">Técnicas Quirúrgicas Correctivas y Tiempos de Soporte Perfusional</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="col-span-1 space-y-3">
+                        <h4 class="text-xs font-semibold text-slate-700">Procedimiento Correctivo Realizado</h4>
+                        <div class="space-y-2 text-xs" id="list-cirugias">
+                            <!-- JS content -->
+                        </div>
+                    </div>
+
+                    <div class="col-span-2 grid grid-cols-2 gap-4 text-xs">
+                        <div class="p-4 bg-slate-50 rounded-xl border border-[#D8D9D7]">
+                            <span class="text-slate-500 block text-[11px] font-medium">TIEMPO PROMEDIO DE BOMBA (CEC)</span>
+                            <span class="text-2xl font-black text-[#002777] mt-1 block">162 min</span>
+                            <p class="text-[10px] text-slate-500 mt-1">TGA Simple: 142 min | TGA Compleja: 198 min</p>
+                        </div>
+
+                        <div class="p-4 bg-slate-50 rounded-xl border border-[#D8D9D7]">
+                            <span class="text-slate-500 block text-[11px] font-medium">PINZAMIENTO AÓRTICO (CLAMP)</span>
+                            <span class="text-2xl font-black text-[#002777] mt-1 block">98 min</span>
+                            <p class="text-[10px] text-slate-500 mt-1">Isquemia miocárdica controlada bajo cardioplejía</p>
+                        </div>
+
+                        <div class="col-span-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-900">
+                            <span class="font-bold block text-xs">Complicaciones Postquirúrgicas Inmediatas Principales:</span>
+                            <ul class="list-disc list-inside text-[11px] mt-1 space-y-0.5">
+                                <li>Disfunción ventricular derecha/izquierda transitoria: 8.4%</li>
+                                <li>Bloqueo AV completo con necesidad de marcapaso: 2.8%</li>
+                                <li>Estenosis supravalvular pulmonar residual (seguimiento): 6.1%</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= MÓDULO 4: PROMS Y ESCALAS CLÍNICAS ================= -->
+        <div id="sec-proms" class="tab-content hidden space-y-6">
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- ESCALA MORISKY-GREEN -->
+                <div class="bento-card p-5 space-y-4">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-xs font-bold text-slate-800">Escala de Morisky-Green (Adherencia Farmacológica)</h3>
+                            <p class="text-[11px] text-slate-500">Evaluación del cumplimiento del tratamiento médico postquirúrgico</p>
+                        </div>
+                        <span class="bg-emerald-100 text-[#2E7D32] text-[10px] font-bold px-2 py-0.5 rounded">Evaluados: 128/142</span>
+                    </div>
+
+                    <div class="flex items-center gap-6">
+                        <div class="w-36 h-36 relative flex-shrink-0">
+                            <canvas id="chartMoriskyDonut"></canvas>
+                        </div>
+                        <div class="text-xs space-y-3 flex-1">
+                            <div class="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg">
+                                <span class="font-bold text-[#2E7D32] block">Alta Adherencia (78.1%)</span>
+                                <span class="text-[11px] text-slate-600">100 pacientes responden 'SÍ' a toma correcta.</span>
+                            </div>
+                            <div class="p-2.5 bg-red-50 border border-red-200 rounded-lg">
+                                <span class="font-bold text-[#D32F2F] block">Baja / Moderada Adherencia (21.9%)</span>
+                                <span class="text-[11px] text-slate-600">28 pacientes requieren refuerzo por enfermería.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-2 border-t border-[#D8D9D7]">
+                        <h4 class="text-xs font-semibold text-slate-700 mb-2">Medicamentos bajo monitoreo de adherencia:</h4>
+                        <div class="grid grid-cols-3 gap-2 text-[11px] text-center">
+                            <span class="bg-slate-100 p-1.5 rounded text-slate-700 font-medium">Inhibidores ECA</span>
+                            <span class="bg-slate-100 p-1.5 rounded text-slate-700 font-medium">Diuréticos Asa</span>
+                            <span class="bg-slate-100 p-1.5 rounded text-slate-700 font-medium">Beta-bloqueadores</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ESCALA PEDSQL 4.0 LONGITUDINAL -->
+                <div class="bento-card p-5 space-y-4">
+                    <div>
+                        <h3 class="text-xs font-bold text-slate-800">PedsQL™ 4.0 — Calidad de Vida Relacionada con la Salud</h3>
+                        <p class="text-[11px] text-slate-500">Seguimiento longitudinal del puntaje medio global (Escala 0-100)</p>
+                    </div>
+
+                    <div class="h-52 relative">
+                        <canvas id="chartPedsQLLongitudinal"></canvas>
+                    </div>
+
+                    <div class="text-[11px] text-slate-600 bg-blue-50/60 p-2.5 rounded-lg border border-blue-100">
+                        <strong>Evolución:</strong> Se evidencia una mejoría estadísticamente significativa ($p < 0.001$) en el puntaje total desde el valor basal pre-quirúrgico/post-alta (61.2 pts) hasta los 5 años (86.5 pts).
+                    </div>
+                </div>
+            </div>
+
+            <!-- PEDSQL DESGLOSE MULTIDIMENSIONAL -->
+            <div class="bento-card p-5">
+                <h3 class="text-xs font-bold text-slate-800 mb-4">PedsQL™ 4.0 — Desglose Multidimensional por Dominios (Evaluación a 24 Meses)</h3>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                    <!-- SALUD FÍSICA -->
+                    <div class="p-4 bg-slate-50 rounded-xl border border-[#D8D9D7] space-y-2">
+                        <div class="flex items-center justify-between text-[#002777] font-bold">
+                            <span>Funcionamiento Físico</span>
+                            <i data-lucide="activity" class="w-4 h-4"></i>
+                        </div>
+                        <div class="text-2xl font-black text-slate-800">84.2 <span class="text-xs font-normal text-slate-500">/ 100</span></div>
+                        <div class="w-full bg-slate-200 rounded-full h-1.5">
+                            <div class="bg-[#002777] h-1.5 rounded-full" style="width: 84.2%"></div>
+                        </div>
+                        <p class="text-[10px] text-slate-500">Capacidad aeróbica y tolerancia al ejercicio.</p>
+                    </div>
+
+                    <!-- FUNCIONAMIENTO EMOCIONAL -->
+                    <div class="p-4 bg-slate-50 rounded-xl border border-[#D8D9D7] space-y-2">
+                        <div class="flex items-center justify-between text-[#004497] font-bold">
+                            <span>Salud Emocional</span>
+                            <i data-lucide="smile" class="w-4 h-4"></i>
+                        </div>
+                        <div class="text-2xl font-black text-slate-800">81.0 <span class="text-xs font-normal text-slate-500">/ 100</span></div>
+                        <div class="w-full bg-slate-200 rounded-full h-1.5">
+                            <div class="bg-[#004497] h-1.5 rounded-full" style="width: 81.0%"></div>
+                        </div>
+                        <p class="text-[10px] text-slate-500">Control de ansiedad, miedo o conductas.</p>
+                    </div>
+
+                    <!-- FUNCIONAMIENTO SOCIAL -->
+                    <div class="p-4 bg-slate-50 rounded-xl border border-[#D8D9D7] space-y-2">
+                        <div class="flex items-center justify-between text-emerald-700 font-bold">
+                            <span>Integración Social</span>
+                            <i data-lucide="users" class="w-4 h-4"></i>
+                        </div>
+                        <div class="text-2xl font-black text-slate-800">88.5 <span class="text-xs font-normal text-slate-500">/ 100</span></div>
+                        <div class="w-full bg-slate-200 rounded-full h-1.5">
+                            <div class="bg-[#2E7D32] h-1.5 rounded-full" style="width: 88.5%"></div>
+                        </div>
+                        <p class="text-[10px] text-slate-500">Relación con pares e interacción social.</p>
+                    </div>
+
+                    <!-- FUNCIONAMIENTO ESCOLAR -->
+                    <div class="p-4 bg-slate-50 rounded-xl border border-[#D8D9D7] space-y-2">
+                        <div class="flex items-center justify-between text-amber-700 font-bold">
+                            <span>Desempeño Escolar</span>
+                            <i data-lucide="book-open" class="w-4 h-4"></i>
+                        </div>
+                        <div class="text-2xl font-black text-slate-800">76.8 <span class="text-xs font-normal text-slate-500">/ 100</span></div>
+                        <div class="w-full bg-slate-200 rounded-full h-1.5">
+                            <div class="bg-amber-500 h-1.5 rounded-full" style="width: 76.8%"></div>
+                        </div>
+                        <p class="text-[10px] text-slate-500">Atención y ausentismo por citas médicas.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= MÓDULO 5: COHORTE DE PACIENTES Y TRAYECTORIA INDIVIDUAL ================= -->
+        <div id="sec-cohorte" class="tab-content hidden space-y-6">
+            
+            <!-- CONTROLES Y FILTROS INTERACTIVOS DE TABLA -->
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-xl border border-[#D8D9D7] shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div class="p-2.5 bg-blue-50 text-[#002777] rounded-lg border border-blue-100">
+                        <i data-lucide="database" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-sm">Tabla Máster de Cohorte - Investigación TGA</h3>
+                        <p class="text-xs text-slate-500">142 pacientes activos con seguimiento longitudinal completo</p>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2 w-full md:w-auto text-xs">
+                    <select id="filter-type" onchange="filterCohortTable()" class="bg-slate-50 border border-[#D8D9D7] text-slate-700 px-2.5 py-1.5 rounded-lg outline-none font-medium">
+                        <option value="ALL">Todas las Clasificaciones</option>
+                        <option value="Simple">TGA Simple</option>
+                        <option value="Compleja">TGA Compleja</option>
+                    </select>
+
+                    <select id="filter-alert" onchange="filterCohortTable()" class="bg-slate-50 border border-[#D8D9D7] text-slate-700 px-2.5 py-1.5 rounded-lg outline-none font-medium">
+                        <option value="ALL">Todos los Estados</option>
+                        <option value="ALERT">Solo con Alertas Activas</option>
+                        <option value="OK">Sin Alertas / Al Día</option>
+                    </select>
+
+                    <div class="relative flex-1 md:w-56">
+                        <i data-lucide="search" class="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400"></i>
+                        <input type="text" id="search-cohort" onkeyup="filterCohortTable()" placeholder="Buscar por ID o Nombre..." class="w-full bg-slate-50 border border-[#D8D9D7] rounded-lg pl-8 pr-3 py-1.5 text-xs focus:ring-2 focus:ring-[#002777] outline-none">
+                    </div>
+                </div>
+            </div>
+
+            <!-- TABLE CONTAINER -->
+            <div class="bento-card overflow-hidden">
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-[#002777] text-white font-semibold uppercase text-[10px] tracking-wider">
+                            <tr>
+                                <th class="p-3">DOCUMENTO</th>
+                                <th class="p-3">ID COHORTE</th>
+                                <th class="p-3">PACIENTE</th>
+                                <th class="p-3">EDAD</th>
+                                <th class="p-3">SEXO</th>
+                                <th class="p-3">CLASIFICACIÓN TGA</th>
+                                <th class="p-3">TÉCNICA CIRUGÍA</th>
+                                <th class="p-3">MORISKY-GREEN</th>
+                                <th class="p-3">PEDSQL 4.0</th>
+                                <th class="p-3">ALERTAS CLÍNICAS</th>
+                                <th class="p-3 text-center">TRAYECTORIA</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cohort-table-body" class="divide-y divide-[#D8D9D7] bg-white">
+                            <!-- Dynamic rows loaded via Javascript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- SECCIÓN INTERACTIVA DE TRAYECTORIA DEL PACIENTE SELECCIONADO -->
+            <div class="bento-card p-6 bg-white space-y-6">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center pb-4 border-b border-[#D8D9D7] gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-full bg-[#002777] text-white font-black flex items-center justify-center text-base shadow" id="selected-patient-avatar">
+                            MV
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h3 class="text-base font-extrabold text-slate-900" id="selected-patient-name">María Valentina Silva</h3>
+                                <span class="bg-blue-100 text-[#002777] font-bold px-2 py-0.5 rounded text-[10px]" id="selected-patient-id">TGA-2026-089</span>
+                                <span class="bg-emerald-100 text-[#2E7D32] font-bold px-2 py-0.5 rounded text-[10px]" id="selected-patient-badge">TGA Compleja (+CIV)</span>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-0.5" id="selected-patient-subtext">TI 1098234567 • 13 Años • Operación de Jatene (ASO + Cierre CIV) a los 12 días de nacida</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2 text-xs">
+                        <span class="text-slate-500">Ruta Estándar TGA FCV:</span>
+                        <span class="bg-emerald-100 text-[#2E7D32] px-2.5 py-1 rounded font-bold text-[11px] flex items-center gap-1">
+                            <i data-lucide="check-circle" class="w-3.5 h-3.5"></i> En Seguimiento
+                        </span>
+                    </div>
+                </div>
+
+                <!-- TIMELINE PIPELINE INTERACTIVO -->
+                <div>
+                    <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4">Línea de Vida Longitudinal y Controles de Ruta</h4>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-6 gap-3 text-xs" id="patient-timeline-container">
+                        
+                        <!-- ETAPA NACIMIENTO / RASHKIND -->
+                        <div class="p-3 bg-slate-50 border border-[#D8D9D7] rounded-xl space-y-2 relative">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-[#002777] text-[11px]">NEONATAL</span>
+                                <span class="bg-emerald-100 text-[#2E7D32] px-1.5 py-0.5 rounded text-[9px] font-bold">OK</span>
+                            </div>
+                            <p class="font-semibold text-slate-800">Ecocardio Postnatal + Rashkind</p>
+                            <span class="text-[10px] text-slate-400 block">Día 2 de vida</span>
+                        </div>
+
+                        <!-- ETAPA CIRUGÍA ASO -->
+                        <div class="p-3 bg-slate-50 border border-[#D8D9D7] rounded-xl space-y-2">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-[#002777] text-[11px]">CIRUGÍA ASO</span>
+                                <span class="bg-emerald-100 text-[#2E7D32] px-1.5 py-0.5 rounded text-[9px] font-bold">OK</span>
+                            </div>
+                            <p class="font-semibold text-slate-800">Switch Arterial + Cierre CIV</p>
+                            <span class="text-[10px] text-slate-400 block">Día 12 de vida</span>
+                        </div>
+
+                        <!-- MES 1 CONTROL -->
+                        <div class="p-3 bg-slate-50 border border-[#D8D9D7] rounded-xl space-y-2">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-[#002777] text-[11px]">MES 1</span>
+                                <span class="bg-emerald-100 text-[#2E7D32] px-1.5 py-0.5 rounded text-[9px] font-bold">OK</span>
+                            </div>
+                            <p class="font-semibold text-slate-800">Eco Post-alta + Inotropia</p>
+                            <span class="text-[10px] text-slate-400 block">FEVI: 62%</span>
+                        </div>
+
+                        <!-- MES 6 CONTROL -->
+                        <div class="p-3 bg-slate-50 border border-[#D8D9D7] rounded-xl space-y-2">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-[#002777] text-[11px]">MES 6</span>
+                                <span class="bg-emerald-100 text-[#2E7D32] px-1.5 py-0.5 rounded text-[9px] font-bold">OK</span>
+                            </div>
+                            <p class="font-semibold text-slate-800">Holter 24h + PedsQL</p>
+                            <span class="text-[10px] text-slate-400 block">Sin arritmias</span>
+                        </div>
+
+                        <!-- MES 12 CONTROL (VENCIDO) -->
+                        <div class="p-3 bg-red-50 border border-red-300 rounded-xl space-y-2">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-[#D32F2F] text-[11px]">AÑO 1</span>
+                                <span class="bg-[#D32F2F] text-white px-1.5 py-0.5 rounded text-[9px] font-bold">VENCIDO</span>
+                            </div>
+                            <p class="font-semibold text-red-900">Ecocardiograma & AngioCT Coronario</p>
+                            <span class="text-[10px] text-red-700 block font-semibold">Pendiente agendamiento</span>
+                        </div>
+
+                        <!-- TRANSICIÓN ADULTO -->
+                        <div class="p-3 bg-slate-50 border border-[#D8D9D7] rounded-xl space-y-2">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-slate-500 text-[11px]">TRANSICIÓN</span>
+                                <span class="bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded text-[9px] font-bold">FUTURO</span>
+                            </div>
+                            <p class="font-semibold text-slate-600">Programa Cardiopatías Adulto</p>
+                            <span class="text-[10px] text-slate-400 block">Previsto: 18 años</span>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <!-- FOOTER INSTITUCIONAL FCV -->
+    <footer class="bg-[#002777] text-white border-t border-[#001A52] py-4 text-center text-xs mt-auto">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-2">
+            <p>© 2026 Fundación Cardiovascular de Colombia (FCV) • Todos los derechos reservados</p>
+            <p class="text-blue-200">Sistema de Analítica e Investigación en Cardiología Pediátrica v3.2</p>
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT LOGIC & INTERACTIVE CHARTS -->
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // TAB SWITCHING FUNCTION
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+            document.getElementById('sec-' + tabId).classList.remove('hidden');
+            document.getElementById('tab-' + tabId).classList.add('active');
+        }
+
+        // MOCK DATA FOR COHORTE TABLE
+        const mockCohortData = [
+            { doc: "1098****89", id: "TGA-2026-089", name: "María Valentina Silva", age: "13 años", sex: "Femenino", type: "Compleja", surg: "ASO Jatene + CIV", morisky: "Alta (4 pts)", pedsql: "82 / 100", alert: "Control Eco Vencido", alertType: "ALERT" },
+            { doc: "1095****12", id: "TGA-2026-012", name: "Carlos Eduardo Gómez", age: "8 meses", sex: "Masculino", type: "Simple", surg: "ASO Jatene", morisky: "Alta (4 pts)", pedsql: "88 / 100", alert: "Ninguna (Al día)", alertType: "OK" },
+            { doc: "1098****44", id: "TGA-2026-042", name: "Lucas Hernández R.", age: "3 años", sex: "Masculino", type: "Compleja", surg: "Rastelli", morisky: "Baja (1 pt)", pedsql: "68 / 100", alert: "Baja Adherencia Farmacológica", alertType: "ALERT" },
+            { doc: "1098****99", id: "TGA-2026-110", name: "Mateo Villamizar", age: "7 años", sex: "Masculino", type: "Simple", surg: "ASO Jatene", morisky: "Alta (4 pts)", pedsql: "91 / 100", alert: "Ninguna (Al día)", alertType: "OK" },
+            { doc: "1098****15", id: "TGA-2026-015", name: "Valentina Ríos C.", age: "10 años", sex: "Femenino", type: "Compleja", surg: "Nikaidoh", morisky: "Moderada (2 pts)", pedsql: "74 / 100", alert: "Cita Neumología Vencida", alertType: "ALERT" },
+            { doc: "1098****78", id: "TGA-2026-078", name: "Santiago Castro P.", age: "5 años", sex: "Masculino", type: "Simple", surg: "ASO Jatene", morisky: "Alta (4 pts)", pedsql: "85 / 100", alert: "Ninguna (Al día)", alertType: "OK" }
+        ];
+
+        function renderCohortTable(data) {
+            const tbody = document.getElementById('cohort-table-body');
+            tbody.innerHTML = '';
+            
+            data.forEach(p => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-blue-50/50 transition cursor-pointer";
+                tr.onclick = () => selectPatient(p);
+
+                const alertBadge = p.alertType === 'ALERT' 
+                    ? `<span class="bg-red-100 text-[#D32F2F] font-bold px-2 py-0.5 rounded-full text-[10px] inline-flex items-center gap-1"><i data-lucide="alert-circle" class="w-3 h-3"></i> ${p.alert}</span>`
+                    : `<span class="bg-emerald-100 text-[#2E7D32] font-semibold px-2 py-0.5 rounded-full text-[10px] inline-flex items-center gap-1"><i data-lucide="check" class="w-3 h-3"></i> ${p.alert}</span>`;
+
+                tr.innerHTML = `
+                    <td class="p-3 font-mono text-slate-500">${p.doc}</td>
+                    <td class="p-3 font-mono font-bold text-[#002777]">${p.id}</td>
+                    <td class="p-3 font-semibold text-slate-800">${p.name}</td>
+                    <td class="p-3 text-slate-600">${p.age}</td>
+                    <td class="p-3 text-slate-600">${p.sex}</td>
+                    <td class="p-3 font-medium ${p.type === 'Compleja' ? 'text-amber-700' : 'text-[#002777]'}">${p.type}</td>
+                    <td class="p-3 text-slate-600">${p.surg}</td>
+                    <td class="p-3 text-slate-700">${p.morisky}</td>
+                    <td class="p-3 font-bold text-slate-800">${p.pedsql}</td>
+                    <td class="p-3">${alertBadge}</td>
+                    <td class="p-3 text-center">
+                        <button class="text-[#002777] hover:text-blue-900 p-1 hover:bg-blue-100 rounded">
+                            <i data-lucide="git-commit" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            lucide.createIcons();
+        }
+
+        function filterCohortTable() {
+            const typeVal = document.getElementById('filter-type').value;
+            const alertVal = document.getElementById('filter-alert').value;
+            const query = document.getElementById('search-cohort').value.toLowerCase();
+
+            const filtered = mockCohortData.filter(p => {
+                const matchType = (typeVal === 'ALL') || (p.type === typeVal);
+                const matchAlert = (alertVal === 'ALL') || (p.alertType === alertVal);
+                const matchQuery = p.name.toLowerCase().includes(query) || p.id.toLowerCase().includes(query) || p.doc.includes(query);
+                return matchType && matchAlert && matchQuery;
+            });
+
+            renderCohortTable(filtered);
+        }
+
+        function selectPatient(patient) {
+            document.getElementById('selected-patient-name').innerText = patient.name;
+            document.getElementById('selected-patient-id').innerText = patient.id;
+            
+            // Extract initials
+            const initials = patient.name.split(' ').map(n => n[0]).slice(0, 2).join('');
+            document.getElementById('selected-patient-avatar').innerText = initials;
+            
+            document.getElementById('selected-patient-badge').innerText = `TGA ${patient.type} (${patient.surg})`;
+            document.getElementById('selected-patient-subtext').innerText = `${patient.doc} • ${patient.age} • ${patient.sex} • PedsQL: ${patient.pedsql} • Morisky: ${patient.morisky}`;
+
+            showNotification(`Trayectoria de ${patient.name} actualizada.`);
+        }
+
+        function exportData(format) {
+            const message = `Exportando reporte de investigación TGA FCV (${format.toUpperCase()})...`;
+            showNotification(message, "emerald");
+        }
+
+        function openFilterModal() {
+            showNotification("Panel de filtros multicriterio (Anatomía, Cirujano, Fecha ASO, EPS) listo para refinamiento.", "blue");
+        }
+
+        function showTransitionInfo() {
+            showNotification("Programa ACHD FCV: Guía de transición activa para pacientes a partir de los 16 años.", "blue");
+        }
+
+        function showNotification(msg, color = "blue") {
+            const toast = document.createElement('div');
+            toast.className = `fixed bottom-5 right-5 ${color === 'emerald' ? 'bg-emerald-700' : 'bg-[#002777]'} text-white px-4 py-3 rounded-xl shadow-xl text-xs z-50 flex items-center gap-2 border border-blue-400/40`;
+            toast.innerHTML = `<i data-lucide="info" class="w-4 h-4 text-white"></i> ${msg}`;
+            document.body.appendChild(toast);
+            lucide.createIcons();
+            setTimeout(() => toast.remove(), 3500);
+        }
+
+        // CHARTS INITIALIZATION
+        function initCharts() {
+            // Helper for Donut Charts
+            const createDonut = (id, data, colors) => {
+                const ctx = document.getElementById(id).getContext('2d');
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        datasets: [{ data: data, backgroundColor: colors, borderWidth: 2, borderColor: '#ffffff' }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '70%',
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            };
+
+            // Module 1 Donuts
+            createDonut('chartAnatomiaDonut', [88, 54], ['#002777', '#0284C7']);
+            createDonut('chartZonaDonut', [115, 27], ['#002777', '#D97706']);
+            createDonut('chartRegimenDonut', [77, 51, 8, 6], ['#002777', '#004497', '#2E7D32', '#F59E0B']);
+
+            // Module 1 Age Group Bar Chart
+            const ctxEtario = document.getElementById('chartEtarioModule1').getContext('2d');
+            new Chart(ctxEtario, {
+                type: 'bar',
+                data: {
+                    labels: ['Neonatal (<28 días)', 'Lactante (1-24 meses)', 'Preescolar (2-5 años)', 'Escolar (6-11 años)', 'Adolescente (12-17 años)', 'Transición Adulto (≥18)'],
+                    datasets: [{
+                        label: 'Número de Pacientes',
+                        data: [14, 32, 28, 42, 21, 5],
+                        backgroundColor: '#002777',
+                        borderRadius: 6,
+                        barThickness: 36
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { max: 50, grid: { color: '#E2E8F0' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // Module 2 Fetal Correlation Bar
+            const ctxFetal = document.getElementById('chartCorrelacionFetal').getContext('2d');
+            new Chart(ctxFetal, {
+                type: 'bar',
+                data: {
+                    labels: ['TGA Simple', 'TGA + CIV', 'TGA + Coartación', 'TGA + Estenosis Pulmonar'],
+                    datasets: [
+                        { label: 'Sospecha Fetal In Utero', data: [38, 14, 4, 3], backgroundColor: '#004497', borderRadius: 4 },
+                        { label: 'Confirmación Postnatal FCV', data: [36, 16, 5, 2], backgroundColor: '#002777', borderRadius: 4 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { grid: { color: '#F1F5F9' } } }
+                }
+            });
+
+            // Module 3 Coronary Yacoub Chart
+            const ctxCoronarias = document.getElementById('chartCoronarias').getContext('2d');
+            new Chart(ctxCoronarias, {
+                type: 'bar',
+                data: {
+                    labels: ['Tipo 1 (Habitual)', 'Tipo 2 (Invertida)', 'Tipo 3 (Sola 1CD)', 'Tipo 4 (Sola 1CX)', 'Tipo 5 (Intramural)'],
+                    datasets: [{
+                        data: [94, 22, 12, 8, 6],
+                        backgroundColor: ['#002777', '#004497', '#0284C7', '#D97706', '#D32F2F'],
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { grid: { color: '#F1F5F9' } } }
+                }
+            });
+
+            // Module 4 Morisky Donut
+            createDonut('chartMoriskyDonut', [100, 28], ['#2E7D32', '#D32F2F']);
+
+            // Module 4 PedsQL Longitudinal Line Chart
+            const ctxPedsQL = document.getElementById('chartPedsQLLongitudinal').getContext('2d');
+            new Chart(ctxPedsQL, {
+                type: 'line',
+                data: {
+                    labels: ['Basal (Alta)', '6 Meses', '12 Meses', '24 Meses', '5 Años'],
+                    datasets: [{
+                        label: 'Puntaje PedsQL™ 4.0 Global',
+                        data: [61.2, 72.4, 79.8, 84.2, 86.5],
+                        borderColor: '#002777',
+                        backgroundColor: 'rgba(0, 39, 119, 0.08)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#002777'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { min: 40, max: 100, grid: { color: '#F1F5F9' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        // RENDER MODULE 3 DETAILED LISTS
+        function renderAnatomyLists() {
+            const complejas = [
+                { name: "Comunicación Interventricular (CIV) Amplia", count: 38, pct: 70, color: "bg-[#002777]" },
+                { name: "Obstrucción Tracto Salida Ventrículo Izq. (OTSVI)", count: 18, pct: 33, color: "bg-[#004497]" },
+                { name: "Coartación Aórtica / Hipoplasia del Arco", count: 9, pct: 17, color: "bg-amber-600" },
+                { name: "Anomalía de Válvula Tricúspide / Estenosis", count: 4, pct: 7, color: "bg-red-600" }
+            ];
+
+            document.getElementById('list-tga-compleja').innerHTML = complejas.map(c => `
+                <div>
+                    <div class="flex justify-between mb-1 font-medium">
+                        <span class="text-slate-700">${c.name}</span>
+                        <span class="font-bold text-slate-900">${c.count} <span class="text-slate-400 font-normal">(${c.pct}%)</span></span>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-2">
+                        <div class="${c.color} h-2 rounded-full" style="width: ${c.pct}%"></div>
+                    </div>
+                </div>
+            `).join('');
+
+            const cirugias = [
+                { name: "Operación de Cambio Arterial (ASO / Jatene)", count: 122, pct: 86 },
+                { name: "Procedimiento de Rastelli (TGA + CIV + EP)", count: 12, pct: 8 },
+                { name: "Cirugía de Nikaidoh / Transposición Aórtica", count: 5, pct: 4 },
+                { name: "Otras correcciones / Paliaciones", count: 3, pct: 2 }
+            ];
+
+            document.getElementById('list-cirugias').innerHTML = cirugias.map(s => `
+                <div>
+                    <div class="flex justify-between mb-1 font-medium">
+                        <span class="text-slate-700">${s.name}</span>
+                        <span class="font-bold text-slate-900">${s.count}</span>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-1.5">
+                        <div class="bg-[#002777] h-1.5 rounded-full" style="width: ${s.pct}%"></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        window.onload = function() {
+            initCharts();
+            renderAnatomyLists();
+            renderCohortTable(mockCohortData);
+        };
+    </script>
+</body>
+</html>
